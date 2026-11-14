@@ -4,6 +4,7 @@ import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import path from "path";
 import { fileURLToPath } from "url";
 import * as schema from "~/db/schema";
+import { markdown } from "~/lib/text";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -65,7 +66,7 @@ export function seedBaseData(testDb: ReturnType<typeof createTestDb>) {
       title: "Test Course",
       slug: "test-course",
       description: "A test course",
-      salesCopy: "## Test Course\n\nSales copy for the test course.",
+      salesCopy: markdown("## Test Course\n\nSales copy for the test course."),
       instructorId: instructor.id,
       categoryId: category.id,
       status: schema.CourseStatus.Published,
@@ -74,4 +75,62 @@ export function seedBaseData(testDb: ReturnType<typeof createTestDb>) {
     .get();
 
   return { user, instructor, category, course };
+}
+
+type TestDb = ReturnType<typeof createTestDb>;
+
+/**
+ * For services that import the shared `~/db`: keeps their queries on the
+ * test's in-memory database, so a test run never writes to data.db.
+ *
+ *   vi.mock("~/db", async () =>
+ *     (await import("~/test/setup")).sharedDbFor(() => db));
+ */
+export function sharedDbFor(current: () => TestDb) {
+  return {
+    db: new Proxy(
+      {},
+      {
+        get(_target, prop) {
+          const testDb = current();
+          const value = Reflect.get(testDb, prop);
+          return typeof value === "function" ? value.bind(testDb) : value;
+        },
+      }
+    ),
+  };
+}
+
+export function seedLessons(testDb: TestDb, courseId: number, count: number) {
+  const module = testDb
+    .insert(schema.modules)
+    .values({ courseId, title: "Basics", position: 1 })
+    .returning()
+    .get();
+
+  return Array.from(
+    { length: count },
+    (_, i) =>
+      testDb
+        .insert(schema.lessons)
+        .values({
+          moduleId: module.id,
+          title: `Lesson ${i + 1}`,
+          position: i + 1,
+        })
+        .returning()
+        .get().id
+  );
+}
+
+export function seedStudent(testDb: TestDb, name: string) {
+  return testDb
+    .insert(schema.users)
+    .values({
+      name,
+      email: `${name.toLowerCase()}@example.com`,
+      role: schema.UserRole.Student,
+    })
+    .returning()
+    .get();
 }

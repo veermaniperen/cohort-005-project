@@ -27,10 +27,11 @@ import {
 } from "~/db/schema";
 import { eq, ne, or, and, isNull, notExists, sql, desc } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
+import type { Markdown } from "~/lib/text";
 
 type QueuedQuestion = {
   id: number;
-  body: string;
+  body: Markdown;
   createdAt: string;
   lessonId: number;
   lessonTitle: string;
