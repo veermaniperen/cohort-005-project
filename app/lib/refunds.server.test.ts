@@ -265,6 +265,35 @@ describe("the refund offer on the course page", () => {
 });
 
 describe("approving a Refund Request", () => {
+  it("keeps the buyer's Bookmarks and Notes", async () => {
+    const purchase = buyForSelf(base.user.id);
+    db.insert(schema.bookmarks)
+      .values({ userId: base.user.id, lessonId: lessonIds[0] })
+      .run();
+    db.insert(schema.notes)
+      .values({ userId: base.user.id, lessonId: lessonIds[1], body: "Mine" })
+      .run();
+    const id = await raise(purchase.id, base.user.id);
+
+    await approveRefundRequest(db, id, platformAdmin.id, null, NOW, notifications);
+
+    expect(isEnrolled(base.user.id)).toBe(false);
+    expect(
+      db
+        .select()
+        .from(schema.bookmarks)
+        .where(eq(schema.bookmarks.userId, base.user.id))
+        .all()
+    ).toHaveLength(1);
+    expect(
+      db
+        .select()
+        .from(schema.notes)
+        .where(eq(schema.notes.userId, base.user.id))
+        .all()
+    ).toHaveLength(1);
+  });
+
   it("removes the buyer's Enrollment but keeps their progress", async () => {
     const purchase = buyForSelf(base.user.id);
     db.insert(schema.lessonProgress)
