@@ -71,6 +71,7 @@ import { data, isRouteErrorResponse } from "react-router";
 import { z } from "zod";
 import { COUNTRIES } from "~/lib/ppp";
 import { parseFormData, parseParams } from "~/lib/validation";
+import { markdown, type Markdown, type PlainText } from "~/lib/text";
 
 const lessonParamsSchema = z.object({
   slug: z.string().min(1),
@@ -112,7 +113,7 @@ type CommentAuthor = {
 
 type ThreadComment = {
   id: number;
-  body: string;
+  body: Markdown;
   createdAt: string;
   editedAt: string | null;
   deleted: boolean;
@@ -374,7 +375,7 @@ function getLessonThread(lessonId: number): ThreadComment[] {
     const deleted = row.deletedAt !== null;
     return {
       id: row.id,
-      body: deleted ? "" : row.body,
+      body: deleted ? markdown("") : row.body,
       createdAt: row.createdAt,
       editedAt: deleted ? null : row.editedAt,
       deleted,
@@ -704,8 +705,6 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     ? await renderThread(getLessonThread(lessonId))
     : [];
 
-  // The Student's own Bookmark and Note on this Lesson, read only for the
-  // current Student and only when they can use them.
   const ownLesson =
     currentUserId && canViewContent
       ? { userId: currentUserId, lessonId }
@@ -1322,7 +1321,7 @@ function BookmarkToggle({ bookmarked }: { bookmarked: boolean }) {
   );
 }
 
-type LessonNoteProps = { note: { body: string; updatedAt: string } | null };
+type LessonNoteProps = { note: { body: PlainText; updatedAt: string } | null };
 
 function LessonNote({ note }: LessonNoteProps) {
   const fetcher = useFetcher<{ ok: boolean; error?: string }>();
@@ -1347,7 +1346,6 @@ function LessonNote({ note }: LessonNoteProps) {
 
         <fetcher.Form method="post" className="space-y-3">
           <input type="hidden" name="intent" value="save-note" />
-          {/* Plain text only — a Note never goes through the Markdown renderer. */}
           <Textarea
             name="body"
             rows={6}

@@ -2,16 +2,14 @@ import { and, desc, eq } from "drizzle-orm";
 import { db } from "~/db";
 import { bookmarks, courses, lessons, modules, notes } from "~/db/schema";
 import { MAX_NOTE_LENGTH } from "~/lib/notes";
+import { plainText } from "~/lib/text";
 
-// ─── Bookmarks and Notes ───
-// A Student's own flag on a Lesson (Bookmark) and their own writing about it
-// (Note). See GLOSSARY.md. Both are private to the Student: every read here is
-// scoped to one Student, and nothing outside the Student's own Lesson page and
-// Saved page may call these. Content access is the caller's job.
+// Bookmarks and Notes are private to the Student (GLOSSARY.md), so only the
+// Student's own Lesson page and Saved page call these. Callers check content
+// access first.
 
 export type Note = typeof notes.$inferSelect;
 
-/** One Student and one Lesson: the key both Bookmarks and Notes hang off. */
 export type StudentLesson = { userId: number; lessonId: number };
 
 function bookmarkFor({ userId, lessonId }: StudentLesson) {
@@ -26,11 +24,6 @@ export function isBookmarked(key: StudentLesson) {
   return !!bookmarkFor(key);
 }
 
-/**
- * Adds the Bookmark if there is none, removes it if there is one. Returns
- * whether the Lesson is now bookmarked. The unique index on (user, lesson)
- * makes a racing second insert a no-op rather than a duplicate.
- */
 export function toggleBookmark(key: StudentLesson, now: Date): boolean {
   const existing = bookmarkFor(key);
 
@@ -41,6 +34,7 @@ export function toggleBookmark(key: StudentLesson, now: Date): boolean {
 
   db.insert(bookmarks)
     .values({ ...key, createdAt: now.toISOString() })
+    // A racing toggle hits the unique (user, lesson) index; keep the first.
     .onConflictDoNothing()
     .run();
   return true;
@@ -57,16 +51,12 @@ export function getNote({ userId, lessonId }: StudentLesson) {
 export type SaveNoteResult =
   { ok: true; note: Note } | { ok: false; error: string };
 
-/**
- * Creates the Student's Note on the Lesson, or replaces its body if they
- * already have one. A re-save moves `updatedAt` on and leaves `createdAt`.
- */
 export function saveNote(
   key: StudentLesson,
   body: string,
   now: Date
 ): SaveNoteResult {
-  const trimmed = body.trim();
+  const trimmed = plainText(body.trim());
   if (trimmed.length === 0) {
     return { ok: false, error: "Write something before saving your note." };
   }
@@ -103,7 +93,6 @@ const lessonLocation = {
   courseSlug: courses.slug,
 };
 
-/** The Student's Bookmarks, newest first, each with its Lesson and Course. */
 export function listBookmarks(userId: number) {
   return db
     .select({
@@ -120,7 +109,6 @@ export function listBookmarks(userId: number) {
     .all();
 }
 
-/** The Student's Notes, last edited first, each with its Lesson and Course. */
 export function listNotes(userId: number) {
   return db
     .select({

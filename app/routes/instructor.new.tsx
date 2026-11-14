@@ -23,6 +23,7 @@ import {
 } from "~/components/ui/select";
 import { AlertTriangle, ArrowLeft } from "lucide-react";
 import { data, isRouteErrorResponse } from "react-router";
+import { markdown } from "~/lib/text";
 
 function getUserById(id: number) {
   return db.select().from(users).where(eq(users.id, id)).get();
@@ -62,7 +63,7 @@ function createCourse(
       title,
       slug,
       description,
-      salesCopy,
+      salesCopy: markdown(salesCopy),
       instructorId,
       categoryId,
       status: CourseStatus.Draft,

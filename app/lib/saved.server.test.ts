@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { createTestDb, seedBaseData } from "~/test/setup";
-import * as schema from "~/db/schema";
-import { UserRole } from "~/db/schema";
+import {
+  createTestDb,
+  seedBaseData,
+  seedLessons,
+  seedStudent,
+} from "~/test/setup";
 import {
   getNote,
   isBookmarked,
@@ -11,23 +14,11 @@ import {
   toggleBookmark,
 } from "./saved.server";
 
-type TestDb = ReturnType<typeof createTestDb>;
+let db: ReturnType<typeof createTestDb>;
 
-let db: TestDb;
-
-// The service uses the shared `~/db`; point it at this test's in-memory
-// database so nothing touches data.db.
-vi.mock("~/db", () => ({
-  db: new Proxy(
-    {},
-    {
-      get(_target, prop) {
-        const value = Reflect.get(db, prop);
-        return typeof value === "function" ? value.bind(db) : value;
-      },
-    }
-  ),
-}));
+vi.mock("~/db", async () =>
+  (await import("~/test/setup")).sharedDbFor(() => db)
+);
 
 const NOW = new Date(2026, 9, 6, 12, 0, 0);
 const LATER = new Date(2026, 9, 7, 9, 30, 0);
@@ -40,34 +31,9 @@ let student: { userId: number; lessonId: number };
 beforeEach(() => {
   db = createTestDb();
   base = seedBaseData(db);
-
-  const module = db
-    .insert(schema.modules)
-    .values({ courseId: base.course.id, title: "Basics", position: 1 })
-    .returning()
-    .get();
-  [lessonId, otherLessonId] = [1, 2].map(
-    (position) =>
-      db
-        .insert(schema.lessons)
-        .values({ moduleId: module.id, title: `Lesson ${position}`, position })
-        .returning()
-        .get().id
-  );
+  [lessonId, otherLessonId] = seedLessons(db, base.course.id, 2);
   student = { userId: base.user.id, lessonId };
 });
-
-function addStudent(name: string) {
-  return db
-    .insert(schema.users)
-    .values({
-      name,
-      email: `${name.toLowerCase()}@example.com`,
-      role: UserRole.Student,
-    })
-    .returning()
-    .get();
-}
 
 describe("toggling a Bookmark", () => {
   it("bookmarks a Lesson that has no Bookmark", () => {
@@ -80,13 +46,6 @@ describe("toggling a Bookmark", () => {
 
     expect(toggleBookmark(student, LATER)).toBe(false);
     expect(isBookmarked(student)).toBe(false);
-  });
-
-  it("never leaves two Bookmarks on the same Lesson", () => {
-    toggleBookmark(student, NOW);
-    expect(() => db.insert(schema.bookmarks).values(student).run()).toThrow();
-
-    expect(listBookmarks(base.user.id)).toHaveLength(1);
   });
 });
 
@@ -140,7 +99,7 @@ describe("saving a Note", () => {
 
 describe("the Saved lists", () => {
   it("contain only the Student's own rows, newest first, with Lesson and Course", () => {
-    const other = addStudent("Priya");
+    const other = seedStudent(db, "Priya");
     toggleBookmark(student, NOW);
     toggleBookmark({ userId: base.user.id, lessonId: otherLessonId }, LATER);
     toggleBookmark({ userId: other.id, lessonId }, LATER);

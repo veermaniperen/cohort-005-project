@@ -9,6 +9,7 @@ import {
   findNotificationPerson,
   type Notifications,
 } from "~/lib/notifications.server";
+import { markdown } from "~/lib/text";
 
 // ─── Comments ───
 // Posting, editing and soft-deleting comments on a lesson: Discussion Questions and
@@ -91,7 +92,7 @@ export async function createComment(
       userId: authorId,
       lessonId,
       parentId,
-      body: trimmed,
+      body: markdown(trimmed),
       createdAt: now.toISOString(),
     })
     .returning()
@@ -280,7 +281,7 @@ export function editComment(
 
   const comment = db
     .update(comments)
-    .set({ body: trimmed, editedAt: now.toISOString() })
+    .set({ body: markdown(trimmed), editedAt: now.toISOString() })
     .where(eq(comments.id, commentId))
     .returning()
     .get();

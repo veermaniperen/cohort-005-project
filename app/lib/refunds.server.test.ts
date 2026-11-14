@@ -18,8 +18,18 @@ import {
   fakeNotifications,
   type FakeNotifications,
 } from "./notifications.fake.server";
+import {
+  listBookmarks,
+  listNotes,
+  saveNote,
+  toggleBookmark,
+} from "./saved.server";
 
 type TestDb = ReturnType<typeof createTestDb>;
+
+vi.mock("~/db", async () =>
+  (await import("~/test/setup")).sharedDbFor(() => db)
+);
 
 const NOW = new Date(2026, 9, 6, 12, 0, 0);
 
@@ -267,31 +277,15 @@ describe("the refund offer on the course page", () => {
 describe("approving a Refund Request", () => {
   it("keeps the buyer's Bookmarks and Notes", async () => {
     const purchase = buyForSelf(base.user.id);
-    db.insert(schema.bookmarks)
-      .values({ userId: base.user.id, lessonId: lessonIds[0] })
-      .run();
-    db.insert(schema.notes)
-      .values({ userId: base.user.id, lessonId: lessonIds[1], body: "Mine" })
-      .run();
+    toggleBookmark({ userId: base.user.id, lessonId: lessonIds[0] }, NOW);
+    saveNote({ userId: base.user.id, lessonId: lessonIds[1] }, "Mine", NOW);
     const id = await raise(purchase.id, base.user.id);
 
     await approveRefundRequest(db, id, platformAdmin.id, null, NOW, notifications);
 
     expect(isEnrolled(base.user.id)).toBe(false);
-    expect(
-      db
-        .select()
-        .from(schema.bookmarks)
-        .where(eq(schema.bookmarks.userId, base.user.id))
-        .all()
-    ).toHaveLength(1);
-    expect(
-      db
-        .select()
-        .from(schema.notes)
-        .where(eq(schema.notes.userId, base.user.id))
-        .all()
-    ).toHaveLength(1);
+    expect(listBookmarks(base.user.id)).toHaveLength(1);
+    expect(listNotes(base.user.id)).toHaveLength(1);
   });
 
   it("removes the buyer's Enrollment but keeps their progress", async () => {
