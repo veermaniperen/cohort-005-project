@@ -10,18 +10,18 @@ export type HeroActions = {
   secondary: LandingLink;
 };
 
-const browseCourses: LandingLink = { label: "Browse courses", to: "/courses" };
+const browseCourses: LandingLink = { label: "Browse Courses", to: "/courses" };
 
 export function heroActionsFor(viewer: LandingViewer): HeroActions {
   if (viewer) {
     return {
-      primary: { label: "Continue learning", to: "/dashboard" },
+      primary: { label: "Continue Learning", to: "/dashboard" },
       secondary: browseCourses,
     };
   }
   return {
     primary: browseCourses,
-    secondary: { label: "Create an account", to: "/signup" },
+    secondary: { label: "Create an Account", to: "/signup" },
   };
 }
 
@@ -29,8 +29,8 @@ export function footerLinksFor(viewer: LandingViewer): LandingLink[] {
   const account: LandingLink[] = viewer
     ? [{ label: "Dashboard", to: "/dashboard" }]
     : [
-        { label: "Log in", to: "/login" },
-        { label: "Sign up", to: "/signup" },
+        { label: "Log In", to: "/login" },
+        { label: "Sign Up", to: "/signup" },
       ];
   return [browseCourses, ...account];
 }

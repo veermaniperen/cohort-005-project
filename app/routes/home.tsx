@@ -292,7 +292,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
           <HighlightRow
             icon={BookOpen}
             value={String(totalCourses)}
-            label="Available courses"
+            label="Available Courses"
           />
           <HighlightRow
             icon={GraduationCap}
