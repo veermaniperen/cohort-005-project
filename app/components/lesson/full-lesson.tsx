@@ -210,7 +210,9 @@ export function FullLesson({
           )}
 
           {/* Notes sit with the discussion: the two places a Student writes about the lesson */}
-          {currentUserId && <LessonNote note={note} />}
+          {/* Keyed by lesson: the editor holds its text in state, and moving to
+              another lesson keeps the component mounted. */}
+          {currentUserId && <LessonNote key={lesson.id} note={note} />}
 
           {/* Questions & Discussion — confidential to people with access */}
           <CommentThread
