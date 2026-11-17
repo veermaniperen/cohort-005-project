@@ -64,6 +64,10 @@ const editCommentSchema = z.object({
   body: z.string(),
 });
 
+const submitQuizSchema = z.object({
+  quizId: z.coerce.number().int().positive(),
+});
+
 const saveNoteSchema = z.object({
   body: noteBodySchema,
 });
@@ -422,15 +426,15 @@ export async function action({ params, request }: Route.ActionArgs) {
   }
 
   if (intent === "submit-quiz") {
-    const quizId = Number(formData.get("quizId"));
-    if (isNaN(quizId)) {
+    const parsed = parseFormData(formData, submitQuizSchema);
+    if (!parsed.success) {
       throw data("Invalid quiz ID", { status: 400 });
     }
+    const { quizId } = parsed.data;
     if (!getQuizInLesson(quizId, lessonId)) {
       throw data("Quiz not found", { status: 404 });
     }
 
-    // Collect answers: form fields named "question-{questionId}" with value = optionId
     const selectedAnswers: Record<number, number> = {};
     for (const [key, value] of formData.entries()) {
       if (key.startsWith("question-")) {

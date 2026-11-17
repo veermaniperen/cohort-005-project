@@ -16,6 +16,8 @@ let lessonId: number;
 let otherLessonId: number;
 let quizId: number;
 
+// lesson-page only reads lessons and quizzes; nothing in the app writes them
+// through a service yet, so the fixtures insert rows directly.
 function addLesson(moduleId: number, position: number) {
   return db
     .insert(schema.lessons)
