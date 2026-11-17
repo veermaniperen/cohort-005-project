@@ -12,7 +12,8 @@ import { CourseStatus } from "~/db/schema";
 import {
   BookOpen,
   GraduationCap,
-  Users,
+  Clock,
+  type LucideIcon,
   ArrowRight,
   User,
   Moon,
@@ -20,6 +21,7 @@ import {
 } from "lucide-react";
 import { CourseImage } from "~/components/course-image";
 import { DevUI } from "~/components/dev-ui";
+import { footerLinks, heroActions } from "~/modules/landing-page";
 import { getCurrentUserId, getDevCountry } from "~/lib/session";
 import { getCountryTierInfo, COUNTRIES } from "~/lib/ppp";
 import { eq, like, and, or, sql } from "drizzle-orm";
@@ -162,6 +164,28 @@ export async function loader({ request }: Route.LoaderArgs) {
   };
 }
 
+function HighlightRow({
+  icon: Icon,
+  value,
+  label,
+}: {
+  icon: LucideIcon;
+  value: string;
+  label: string;
+}) {
+  return (
+    <li className="flex items-center gap-4 p-6">
+      <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+        <Icon className="size-6 text-primary" />
+      </div>
+      <div>
+        <p className="text-2xl font-bold">{value}</p>
+        <p className="text-sm text-muted-foreground">{label}</p>
+      </div>
+    </li>
+  );
+}
+
 export default function Home({ loaderData }: Route.ComponentProps) {
   const {
     featuredCourses,
@@ -174,6 +198,8 @@ export default function Home({ loaderData }: Route.ComponentProps) {
     countries,
   } = loaderData;
   const [isDark, setIsDark] = useState(false);
+  const hero = heroActions(currentUser);
+  const footer = footerLinks(currentUser);
 
   useEffect(() => {
     setIsDark(document.documentElement.classList.contains("dark"));
@@ -234,57 +260,56 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         </div>
       </header>
 
-      <section className="mx-auto max-w-6xl px-6 py-24 text-center">
-        <h1 className="text-5xl font-bold tracking-tight sm:text-6xl">
-          Learn to code,
-          <br />
-          <span className="text-muted-foreground">at your own pace</span>
-        </h1>
-        <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-          Structured courses built by experienced instructors. Track your
-          progress, take quizzes, and build real-world skills.
-        </p>
-        <div className="mt-10 flex items-center justify-center gap-4">
-          <Button asChild size="lg">
-            <Link to="/courses">
-              Browse Courses
-              <ArrowRight className="ml-2 size-4" />
-            </Link>
-          </Button>
+      <section className="mx-auto grid max-w-6xl gap-12 px-6 py-16 lg:grid-cols-[3fr_2fr] lg:items-center lg:py-24">
+        <div>
+          <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-sm font-medium text-muted-foreground">
+            <span className="size-2 rounded-full bg-primary" />
+            Courses for working developers
+          </p>
+          <h1 className="text-5xl font-bold tracking-tight sm:text-6xl">
+            Learn to code,
+            <br />
+            <span className="text-muted-foreground">at your own pace</span>
+          </h1>
+          <p className="mt-6 max-w-xl text-lg text-muted-foreground">
+            Structured courses built by experienced instructors. Track your
+            progress, take quizzes, and build real-world skills.
+          </p>
+          <div className="mt-10 flex flex-wrap items-center gap-4">
+            <Button asChild size="lg">
+              <Link to={hero.primary.to}>
+                {hero.primary.label}
+                <ArrowRight className="ml-2 size-4" />
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="outline">
+              <Link to={hero.secondary.to}>{hero.secondary.label}</Link>
+            </Button>
+          </div>
         </div>
-      </section>
 
-      <section className="border-y border-border bg-muted/50 py-16">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-6 sm:grid-cols-3">
-          <div className="text-center">
-            <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-lg bg-primary/10">
-              <BookOpen className="size-6 text-primary" />
-            </div>
-            <p className="text-2xl font-bold">{totalCourses}</p>
-            <p className="text-sm text-muted-foreground">Available Courses</p>
-          </div>
-          <div className="text-center">
-            <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-lg bg-primary/10">
-              <GraduationCap className="size-6 text-primary" />
-            </div>
-            <p className="text-2xl font-bold">{totalCategories}</p>
-            <p className="text-sm text-muted-foreground">Categories</p>
-          </div>
-          <div className="text-center">
-            <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-lg bg-primary/10">
-              <Users className="size-6 text-primary" />
-            </div>
-            <p className="text-2xl font-bold">Self-paced</p>
-            <p className="text-sm text-muted-foreground">
-              Learn on your schedule
-            </p>
-          </div>
-        </div>
+        <ul className="divide-y divide-border rounded-xl border border-border bg-muted/50">
+          <HighlightRow
+            icon={BookOpen}
+            value={String(totalCourses)}
+            label="Available courses"
+          />
+          <HighlightRow
+            icon={GraduationCap}
+            value={String(totalCategories)}
+            label="Categories"
+          />
+          <HighlightRow
+            icon={Clock}
+            value="Self-paced"
+            label="Learn on your schedule"
+          />
+        </ul>
       </section>
 
       {featuredCourses.length > 0 && (
-        <section className="mx-auto max-w-6xl px-6 py-20">
-          <div className="mb-10 flex items-end justify-between">
+        <section className="mx-auto max-w-6xl px-6 pb-20">
+          <div className="mb-10 flex items-end justify-between border-t border-border pt-16">
             <div>
               <h2 className="text-3xl font-bold tracking-tight">
                 Featured Courses
@@ -340,9 +365,27 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         </section>
       )}
 
-      <footer className="border-t border-border py-8">
-        <div className="mx-auto max-w-6xl px-6 text-center text-sm text-muted-foreground">
-          Cadence
+      <footer className="border-t border-border py-10">
+        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <Link to="/" className="text-lg font-bold tracking-tight">
+              Cadence
+            </Link>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Learn to code, at your own pace.
+            </p>
+          </div>
+          <nav className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+            {footer.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
         </div>
       </footer>
 
